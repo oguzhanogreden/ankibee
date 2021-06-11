@@ -45,6 +45,7 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         tag: v0.0.1
+        artifacts: beetime.ankiaddon
         draft: true
       
 
