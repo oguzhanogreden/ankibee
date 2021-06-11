@@ -1,6 +1,6 @@
 # beetime 
 
-**This is a fork, not ready for use!**
+**This is a fork made for personal use, use at your own risk!**
 
 # Description
 This add-on connects Anki to your Beeminder graphs.  Currently it supports syncing your time spent reviewing, number of cards reviewed and/or number of cards/notes added, with more metrics planned.  Discussion of features and bugs takes place over [on this thread on the Beeminder forum](http://forum.beeminder.com/t/announcing-beeminder-for-anki/2206).  The published version of this add-on can be found over on [AnkiWeb](https://ankiweb.net/shared/info/1728790823)
