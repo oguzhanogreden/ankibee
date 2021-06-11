@@ -1,0 +1,37 @@
+name: Release Add-on
+
+on:
+  push:
+    branches: [ master ]
+    tags:
+      - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Build UI
+      run: |
+        pyuic5 resources/layout/config.ui > beetime/config_layout.py
+    - name: Build Add-on
+      run: |
+        cd beetime && zip -r ../beetime.ankiaddon * && cd ../
+    - name: GH Release
+      uses: softprops/action-gh-release@v0.1.5
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        files: beetime.ankiaddon
