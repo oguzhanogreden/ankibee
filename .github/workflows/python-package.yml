@@ -34,11 +34,17 @@ jobs:
     - name: Build Add-on
       run: |
         cd beetime && zip -r ../beetime.ankiaddon * && cd ../
-    - name: GH Release
-      uses: softprops/action-gh-release@v0.1.5
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#     - name: GH Release
+#       uses: softprops/action-gh-release@v0.1.5
+#       env:
+#         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       with:
+#         files: beetime.ankiaddon
+    - name: 🛎️ Create release
+      uses: ncipollo/release-action@v1
       with:
-        files: beetime.ankiaddon
+        token: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ v0.0.1 }}
+        draft: true
       
 
