@@ -1,10 +1,10 @@
+from beetime.exceptions import LastUploadIsNotSetException
 from anki.lang import ngettext
 from anki.utils import fmtTimeSpan
 from beetime.config import BeeminderSettings
 from beetime.util import get_day_stamp
 
-
-def get_data_point_id(col, goal_type, timestamp):
+def get_data_point_id(goal_type, timestamp):
     """ Compare the cached dayStamp with the current one, return
     a tuple with as the first item the cached datapoint ID if
     the dayStamps match, otherwise None; the second item is
@@ -13,10 +13,23 @@ def get_data_point_id(col, goal_type, timestamp):
     Disregard mention of the second item in the tuple.
     """
     config = BeeminderSettings.read()
-    if config[goal_type]["overwrite"] and config[goal_type]["lastupload"] == get_day_stamp(
-        timestamp
-    ):
-        return config[goal_type]["did"]
+    
+    lastupload = get_day_stamp(timestamp)
+    
+    try:
+        if config[goal_type]["overwrite"] and _lastupload_equals(config, goal_type, lastupload):
+            return config[goal_type]["did"]
+    except LastUploadIsNotSetException:
+        # lastupload isn't set.
+        # hypothesis: this happens on first run
+        return None
+
+        
+def _lastupload_equals(config, goal_type, day_stamp: str) -> bool:
+    try:
+        return config[goal_type]["lastupload"] == day_stamp 
+    except KeyError:
+        raise LastUploadIsNotSetException
 
 
 def format_comment(n_cards, review_time):

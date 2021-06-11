@@ -87,12 +87,17 @@ def prepare_api_call(col, timestamp, value, comment, goal_type="time"):
         "auth_token": token,
     }
 
-    cached_data_point_id = get_data_point_id(col, goal_type, timestamp)
+    cached_data_point_id = get_data_point_id(goal_type, timestamp)
 
     config[goal_type]["lastupload"] = get_day_stamp(timestamp)
     config[goal_type]["did"] = send_api(user, token, slug, data, cached_data_point_id)
+    BeeminderSettings.write(config)
     col.setMod()
 
 
 def is_enabled(goal):
+    # goal here is either:
+    # - review time
+    # - number of reviews
+    # - number of additions
     return BeeminderSettings.read()[goal]["enabled"]
