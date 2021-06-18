@@ -16,7 +16,7 @@ mw.addonManager.setConfigAction(__name__, open_beeminder_config)
 
 # manual sync menu item
 manualSync = QAction("Sync with Beeminder", mw)
-manualSync.triggered.connect(partial(sync_dispatch, at="manual"))
+manualSync.triggered.connect(partial(sync_dispatch, at="ankiweb"))
 mw.form.menuTools.addAction(manualSync)
 
 # sync at shutdown hook

@@ -1,0 +1,1 @@
+TRACKED_OBJECT_NAMES = ["cards", "notes"]

@@ -1,15 +1,14 @@
 import datetime
-import time
 
-from aqt import mw, progress
-from beetime.api import send_api
-from beetime.lookup import format_comment, get_data_point_id, lookup_added, lookup_reviewed
+from aqt import mw
+from beetime.lookup import format_comment, lookup_added, lookup_reviewed
 from beetime.config import BeeminderSettings
-from beetime.util import get_day_stamp
+
+from .beeminder_client import prepare_api_call
+from .constants import TRACKED_OBJECT_NAMES
 
 NOON = 12
 SECONDS_PER_MINUTE = 60
-
 
 def sync_dispatch(col=None, at=None):
     """Tally the time spent reviewing and send it to Beeminder.
@@ -21,7 +20,7 @@ def sync_dispatch(col=None, at=None):
     if col is None:
         return
 
-    config = BeeminderSettings.read()
+    config = BeeminderSettings.read_config()
 
     try:
         if (
@@ -61,38 +60,17 @@ def sync_dispatch(col=None, at=None):
         if is_enabled("reviewed"):
             prepare_api_call(col, report_ts, n_cards, comment, goal_type="reviewed")
 
-    if is_enabled("added"):
-        added = ["cards", "notes"][config["added"]["type"]]
-        n_added = lookup_added(col, added)
-        prepare_api_call(
-            col, report_ts, n_added, f"added {n_added} {added}", goal_type="added",
-        )
+    for index, added in enumerate(config["added"]):
+        if added["enabled"]:
+            type_ = TRACKED_OBJECT_NAMES[added["type"]]
+            # todo: pass down deck id
+            n_added = lookup_added(col, type_)
+            print(n_added)
+            prepare_api_call(
+                col, report_ts, n_added, f"added {n_added} {type_}", goal_type="added", index=index
+            )
 
     mw.progress.finish()
-
-
-def prepare_api_call(col, timestamp, value, comment, goal_type="time"):
-    """Prepare the API call to beeminder.
-
-    Based on code by: muflax <mail@muflax.com>, 2012
-    """
-    config = BeeminderSettings.read()
-    user = config["username"]
-    token = config["token"]
-    slug = config[goal_type]["slug"]
-    data = {
-        "timestamp": timestamp,
-        "value": value,
-        "comment": comment,
-        "auth_token": token,
-    }
-
-    cached_data_point_id = get_data_point_id(goal_type, timestamp)
-
-    config[goal_type]["lastupload"] = get_day_stamp(timestamp)
-    config[goal_type]["did"] = send_api(user, token, slug, data, cached_data_point_id)
-    BeeminderSettings.write(config)
-    col.setMod()
 
 
 def is_enabled(goal):
@@ -100,4 +78,4 @@ def is_enabled(goal):
     # - review time
     # - number of reviews
     # - number of additions
-    return BeeminderSettings.read()[goal]["enabled"]
+    return BeeminderSettings.read_config()[goal]["enabled"]

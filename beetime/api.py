@@ -4,13 +4,34 @@ from urllib.parse import urlencode
 import requests
 from requests.compat import urljoin
 
+BASE_URL = "https://www.beeminder.com/api/v1/"
 
-def get_api(user, token, slug):
-    """Get and return the datapoints for a given goal from Beeminder."""
-    return api_call("GET", user, token, slug, None, None)
+def _get_query_body(token: str) -> dict:
+    return {
+        "auth_token": token
+    }
+    
+def _get_query_headers() -> dict:
+    return {
+        "Content-type": "application/x-www-form-urlencoded",
+        "Accept": "text/plain",
+    }
+    
+
+def get_user(username: str, token: str) -> None:
+    url = urljoin(BASE_URL, f"users/{username}.json")
+    
+    headers = _get_query_headers()
+    data = urlencode(_get_query_body(token))
+    
+    response = requests.request("GET", url, headers=headers, data=data)
+
+    response.raise_for_status()
+    
+    return
 
 
-def send_api(user, token, slug, data, did=None):
+def send_datapoints_of_goal(user, token, slug, data, did=None):
     """Send or update a datapoint to a given Beeminder goal. If a
     datapoint ID (did) is given, the existing datapoint is updated.
     Otherwise a new datapoint is created. Returns the datapoint ID
@@ -27,19 +48,16 @@ def api_call(method, user, token, slug, data, did):
     """
 
     cmd = "datapoints"
-    base = f"https://www.beeminder.com/api/v1/users/{user}/goals/{slug}/"
+    base = urljoin(BASE_URL, f"users/{user}/goals/{slug}/")
     if method == "POST" and did is not None:
         url = urljoin(base, f"{cmd}/{did}.json")
         method = "PUT"
     else:
         url = urljoin(base, f"{cmd}.json")
 
-    headers = {
-        "Content-type": "application/x-www-form-urlencoded",
-        "Accept": "text/plain",
-    }
-    params = urlencode({"auth_token": token} if method == "GET" else data)
+    headers = _get_query_headers()
+    data = urlencode(_get_query_body(token) if method == "GET" else data)
 
-    response = requests.request(method, url, headers=headers, data=params)
+    response = requests.request(method, url, headers=headers, data=data)
     response.raise_for_status()
     return response.text

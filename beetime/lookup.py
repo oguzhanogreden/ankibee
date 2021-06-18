@@ -1,10 +1,12 @@
+from anki.collection import Collection
+from anki.decks import Deck, DeckManager
 from beetime.exceptions import LastUploadIsNotSetException
 from anki.lang import ngettext
 from anki.utils import fmtTimeSpan
 from beetime.config import BeeminderSettings
 from beetime.util import get_day_stamp
 
-def get_data_point_id(goal_type, timestamp):
+def get_data_point_id(goal_type, timestamp, index=None):
     """ Compare the cached dayStamp with the current one, return
     a tuple with as the first item the cached datapoint ID if
     the dayStamps match, otherwise None; the second item is
@@ -12,22 +14,27 @@ def get_data_point_id(goal_type, timestamp):
     to save the new ID and dayStamp.
     Disregard mention of the second item in the tuple.
     """
-    config = BeeminderSettings.read()
+    config = BeeminderSettings.read_config()
     
-    lastupload = get_day_stamp(timestamp)
+    day_stamp = get_day_stamp(timestamp)
+    
+    goal_data = config[goal_type]
+    
+    if index is not None:
+        goal_data = goal_data[0]
     
     try:
-        if config[goal_type]["overwrite"] and _lastupload_equals(config, goal_type, lastupload):
-            return config[goal_type]["did"]
+        if goal_data["overwrite"] and _lastupload_equals(goal_data["lastupload"], day_stamp):
+            return goal_data["did"]
     except LastUploadIsNotSetException:
         # lastupload isn't set.
         # hypothesis: this happens on first run
         return None
 
         
-def _lastupload_equals(config, goal_type, day_stamp: str) -> bool:
+def _lastupload_equals(last_upload, day_stamp: str) -> bool:
     try:
-        return config[goal_type]["lastupload"] == day_stamp 
+        return last_upload == day_stamp 
     except KeyError:
         raise LastUploadIsNotSetException
 
@@ -47,7 +54,37 @@ def lookup_reviewed(col):
     return (cardsReviewed or 0, reviewTime or 0)
 
 
-def lookup_added(col, added="cards"):
-    return col.db.scalar(
-        "select count() from {} where id > {}".format(added, (col.sched.dayCutoff - 86400) * 1000)
+def lookup_added(col: Collection, type_="cards") -> int:
+    deck_manager = DeckManager(col)
+
+    deck_id = deck_manager.id_for_name("The Deck")
+    
+    
+    if deck_id is None:
+        raise Exception
+    
+    print(deck_id)
+
+    if type_ == "cards":
+        return col.db.scalar(
+            """select count() from {type_} 
+            where id > {id_}
+            and (
+                did = {deck_id}
+                or odid = {deck_id}
+            )""".format(type_=type_, id_=(col.sched.dayCutoff - 86400) * 1000, deck_id=deck_id)
     )
+    elif type_ == "notes":
+        return col.db.scalar(
+            """select count(distinct notes.id) from notes 
+            left join cards
+            on notes.id = cards.nid
+            where notes.id > {id_}
+            and (
+                cards.did = {deck_id}
+                or cards.odid = {deck_id}
+            )""".format(id_=(col.sched.dayCutoff - 86400) * 1000, deck_id=deck_id)
+        )
+    else:
+        # argumentexception?
+        raise Exception
