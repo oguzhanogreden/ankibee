@@ -2,8 +2,9 @@ name: Release Add-on
 
 on:
   push:
+    branches: [ master ]
     tags:
-      - v*.*.*
+      - "*"
 
 jobs:
   build:
